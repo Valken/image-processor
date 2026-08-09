@@ -12,7 +12,7 @@ repos:
     rev: 9.0.0
     hooks:
     -   id: md-toc
-        args: [-p, github]
+        args: [-p, -s, '4', github]
 -   repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.4.0
     hooks:

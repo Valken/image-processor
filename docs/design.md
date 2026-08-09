@@ -1,5 +1,25 @@
 # Image Processor - Design
 
+## Table of Contents
+
+<!--TOC-->
+
+- [Objective](#objective)
+- [Non-goals](#non-goals)
+- [Architecture — Tech Stack](#architecture--tech-stack)
+- [Architecture Diagram](#architecture-diagram)
+- [API Definition](#api-definition)
+- [User Flow](#user-flow)
+- [Worker Flow](#worker-flow)
+- [Error Handling & Retry Strategy](#error-handling--retry-strategy)
+- [Persistence & State Transitions](#persistence--state-transitions)
+- [S3 Key Convention](#s3-key-convention)
+- [Image Resizing Strategy](#image-resizing-strategy)
+- [Non-Functional Requirements](#non-functional-requirements)
+
+<!--TOC-->
+
+
 ## Objective
 
 Build a service for uploading and serving optimized images for web applications handling resizing and format conversion automatically.
