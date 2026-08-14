@@ -15,10 +15,11 @@
 - [Persistence & State Transitions](#persistence--state-transitions)
 - [S3 Key Convention](#s3-key-convention)
 - [Image Resizing Strategy](#image-resizing-strategy)
+  - [Edge cases](#edge-cases)
+- [Serving processed images](#serving-processed-images)
 - [Non-Functional Requirements](#non-functional-requirements)
 
 <!--TOC-->
-
 
 ## Objective
 
@@ -32,11 +33,43 @@ Support for anything other than images. This is not a media processor.
 
 - CDK
 - Github Actions
-- Python 3.14
-- AWS Lambda Powertools
-- uv
+- Python 3.14, uv
+- AWS Lambda Powertools, Pillow
 
 ## Architecture Diagram
+
+```mermaid
+graph TB
+    Client["Client<br/>Browser / Mobile App"]
+    API["API<br/>POST /upload<br/>GET /status"]
+    DDB["DynamoDB<br/>Upload State Table"]
+    S3["S3<br/>Object Storage<br/>Bucket"]
+    SQS["SQS<br/>Standard Queue"]
+    Lambda["Image procesing<br/>Lambda"]
+
+    Client -->|1. Request URL| API
+    API -->|Write state pending| DDB
+    API -->|2. Return URL| Client
+
+    Client -->|3. Upload file via<br/>presigned URL| S3
+
+    S3 -->|4. S3:ObjectCreated event| SQS
+
+    Lambda -->|5. SQS Event Source Mapping| SQS
+
+    Lambda -->|6. Write processed<br/>resized, optimized| S3
+    Lambda -->|7. Update state<br/>processing/completed| DDB
+
+    Client -.->|Poll status| API
+    API -.->|Read state| DDB
+
+    style Client fill:#999
+    style API fill:#185FA5,color:#fff
+    style DDB fill:#1D9E75,color:#fff
+    style S3 fill:#D85A30,color:#fff
+    style SQS fill:#F5A623,color:#000
+    style Lambda fill:#7F77DD,color:#fff
+```
 
 ## API Definition
 
@@ -71,6 +104,23 @@ Response:
 - Poll a status endpoint
 - On complete response will include urls for thumb and large image
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant S3
+
+
+    Client->>API: 1. POST /upload
+    API->>Client: Return presigned URL
+
+    Client->>S3: 3. PUT object (presigned URL)
+
+    Client->>API: Poll GET /status
+    API->>Client: Return status + output URL
+
+```
+
 ## Worker Flow
 
 - S3 put events written to an SQS queue
@@ -101,9 +151,17 @@ Response:
 
 - Fixed width for thumbs and display
 - 80% original quality
-- Large images?
-- Smaller than min width images?
+- WebP
 
+Choosing fixed with so that if displayed in a row, or grid, the images will be aligned horizontally.
+
+### Edge cases
+
+If an image is smaller than the default min width, it will be left unchanged. Extremely large images (how large is large?) should be rejected.
+
+## Serving processed images
+
+Cloudfront
 
 ## Non-Functional Requirements
 
