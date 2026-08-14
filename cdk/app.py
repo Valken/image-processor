@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 from aws_cdk import App
-
 from image_processor_infra_stack import ImageProcessorInfraStack
-
 
 VALID_ENVIRONMENTS = {"dev", "prod"}
 

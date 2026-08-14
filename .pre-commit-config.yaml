@@ -18,3 +18,12 @@ repos:
     hooks:
     -   id: conventional-pre-commit
         stages: [commit-msg]
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.11.10
+  hooks:
+    - id: ruff
+      args: [ --fix ]
+    - id: ruff-format
+    - id: ruff
+      args: [ "check", "--select", "I", "--fix" ]
+      files: "^cdk/"
