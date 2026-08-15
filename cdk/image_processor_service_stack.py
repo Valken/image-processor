@@ -3,7 +3,7 @@ from typing import Any
 from aws_cdk import Duration, Stack
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
-from aws_cdk.aws_s3 import Bucket
+from aws_cdk.aws_s3 import IBucket
 from aws_cdk.aws_sqs import Queue as SqsQueue
 from constructs import Construct
 
@@ -15,7 +15,7 @@ class ImageProcessorServiceStack(Stack):
         construct_id: str,
         *,
         environment: str,
-        image_bucket: Bucket,
+        image_bucket: IBucket,
         **kwargs: Any,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -37,6 +37,7 @@ class ImageProcessorServiceStack(Stack):
                 detail={
                     "bucket": {"name": [image_bucket.bucket_name]},
                     "object": {"key": [{"prefix": "uploads/"}]},
+                    "reason": ["PutObject"],
                 },
             ),
             targets=[targets.SqsQueue(queue)],
