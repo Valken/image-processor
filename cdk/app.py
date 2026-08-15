@@ -1,5 +1,6 @@
 from aws_cdk import App
 from image_processor_infra_stack import ImageProcessorInfraStack
+from image_processor_service_stack import ImageProcessorServiceStack
 
 VALID_ENVIRONMENTS = {"dev", "prod"}
 
@@ -21,6 +22,15 @@ infra_stack = ImageProcessorInfraStack(
     environment=environment,
     stack_name=stack_name,
 )
+
+service_stack = ImageProcessorServiceStack(
+    app,
+    "ImageProcessorService",
+    environment=environment,
+    image_bucket=infra_stack.image_bucket,
+    stack_name=f"image-processor-service-{environment}",
+)
+service_stack.add_dependency(infra_stack)
 
 
 app.synth()
