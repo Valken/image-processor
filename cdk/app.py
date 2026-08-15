@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from aws_cdk import App
 from image_processor_infra_stack import ImageProcessorInfraStack
 
@@ -17,11 +15,12 @@ if environment not in VALID_ENVIRONMENTS:
     )
 
 stack_name = f"image-processor-infra-{environment}"
-ImageProcessorInfraStack(
+infra_stack = ImageProcessorInfraStack(
     app,
     "ImageProcessorInfra",
     environment=environment,
     stack_name=stack_name,
 )
+
 
 app.synth()
