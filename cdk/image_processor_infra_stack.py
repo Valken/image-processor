@@ -27,10 +27,12 @@ class ImageProcessorInfraStack(Stack):
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             encryption=s3.BucketEncryption.S3_MANAGED,
             enforce_ssl=True,
+            event_bridge_enabled=True,
             removal_policy=(
                 RemovalPolicy.DESTROY if is_development else RemovalPolicy.RETAIN
             ),
         )
+        self.image_bucket = bucket
 
         CfnOutput(self, "ImageBucketName", value=bucket.bucket_name)
         CfnOutput(self, "ImageBucketArn", value=bucket.bucket_arn)
