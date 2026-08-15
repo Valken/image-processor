@@ -58,9 +58,12 @@ environment:
 Pushes to `main` are tracked by [release-please](https://github.com/googleapis/release-please),
 which keeps a release pull request up to date with a generated `CHANGELOG.md` entry
 and version bump based on [Conventional Commits](https://www.conventionalcommits.org/).
-Merging that pull request creates a GitHub release and a `vX.Y.Z` tag.
+Merging that pull request creates a GitHub release and a `vX.Y.Z` tag, which
+automatically deploys the `dev` environment via GitHub Actions.
 
-To deploy a specific release, check out its tag and run the deploy command above:
+`prod` deploys remain a deliberate action — either run the `Deploy` workflow
+manually from the Actions tab with `environment: prod`, or check out the
+release tag and deploy locally:
 
 ```bash
 git fetch --tags
