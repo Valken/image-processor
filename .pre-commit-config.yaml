@@ -13,6 +13,7 @@ repos:
     hooks:
     -   id: md-toc
         args: [-p, -s, '4', github]
+        files: ^README\.md$
 -   repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.4.0
     hooks:
