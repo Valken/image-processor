@@ -52,3 +52,18 @@ environment:
 (cd cdk && uv run cdk deploy --context environment=dev)
 (cd cdk && uv run cdk deploy --context environment=prod)
 ```
+
+### Releases
+
+Pushes to `main` are tracked by [release-please](https://github.com/googleapis/release-please),
+which keeps a release pull request up to date with a generated `CHANGELOG.md` entry
+and version bump based on [Conventional Commits](https://www.conventionalcommits.org/).
+Merging that pull request creates a GitHub release and a `vX.Y.Z` tag.
+
+To deploy a specific release, check out its tag and run the deploy command above:
+
+```bash
+git fetch --tags
+git checkout vX.Y.Z
+(cd cdk && uv run cdk deploy --context environment=prod)
+```
