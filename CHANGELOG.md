@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Valken/image-processor/compare/v0.1.1...v0.1.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* Bump GitHub Actions to node24-runtime versions ([#10](https://github.com/Valken/image-processor/issues/10)) ([7749450](https://github.com/Valken/image-processor/commit/7749450d9d5835569877b979f3da9d89d934d899))
+
 ## [0.1.1](https://github.com/Valken/image-processor/compare/v0.1.0...v0.1.1) (2026-08-16)
 
 
