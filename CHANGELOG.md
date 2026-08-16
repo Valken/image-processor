@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Valken/image-processor/compare/v0.1.0...v0.1.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* Deploy all CDK stacks in workflow ([#8](https://github.com/Valken/image-processor/issues/8)) ([6315681](https://github.com/Valken/image-processor/commit/6315681bf25123fa9627a97b55d51bb9566d932f))
+
 ## [0.1.0](https://github.com/Valken/image-processor/compare/v0.1.0...v0.1.0) (2026-08-15)
 
 
