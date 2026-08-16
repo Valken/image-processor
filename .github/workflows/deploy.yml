@@ -49,4 +49,4 @@ jobs:
 
       - name: Deploy stack
         working-directory: cdk
-        run: uv run cdk deploy --context environment=${{ env.DEPLOY_ENV }} --require-approval never
+        run: uv run cdk deploy --context environment=${{ env.DEPLOY_ENV }} --all --require-approval never
