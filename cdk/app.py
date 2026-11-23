@@ -30,7 +30,7 @@ service_stack = ImageProcessorServiceStack(
     image_bucket=infra_stack.image_bucket,
     stack_name=f"image-processor-service-{environment}",
 )
-service_stack.add_dependency(infra_stack)
+service_stack.add_stack_dependency(infra_stack)
 
 
 app.synth()

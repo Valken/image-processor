@@ -6,3 +6,6 @@ __pycache__/
 # CDK asset staging and synthesized output
 .cdk.staging/
 cdk.out/
+
+# JetBrains IDE settings
+.idea/

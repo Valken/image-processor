@@ -17,6 +17,54 @@ each deployment environment:
 The development bucket and its contents are deleted when its stack is deleted.
 The production bucket is retained.
 
+### Lambda packaging
+
+Each Lambda handler is its own uv workspace member under `handlers/<name>/`,
+with a src-layout package, its own runtime dependencies, and its own tests:
+
+```
+handlers/hello/
+  pyproject.toml            # name = "hello-handler"
+  src/hello_handler/handler.py
+  tests/
+```
+
+All members share the single root `uv.lock`. In CDK, the `UvPythonFunction`
+construct (`cdk/uv_python_function.py`) bundles a member as a ZIP asset using
+`cdk/bundling/Dockerfile`, a Linux AMD64 SAM build image. It installs the
+member and only its locked runtime dependencies directly into the asset (no
+virtualenv):
+
+```bash
+uv export --frozen --no-dev --package hello-handler --no-editable --no-hashes \
+  | uv pip install --no-deps --target <asset-output> -r -
+```
+
+Each function's asset hash is derived only from the root `pyproject.toml`,
+`uv.lock`, the members' `pyproject.toml` files and that handler's own source,
+so changes to other handlers, CDK code, tests, IDE files or `cdk.out` don't
+redeploy it.
+
+#### Adding a handler
+
+1. Create `handlers/<name>/` with a `pyproject.toml` (copy `handlers/hello`'s)
+   and a `src/<package>/` package.
+2. Run `uv lock && uv sync --all-packages`.
+3. Add it to a stack:
+
+   ```python
+   UvPythonFunction(
+       self,
+       "ResizeFunction",
+       path="handlers/resize",
+       handler="resize_handler.handler.handler",
+   )
+   ```
+
+The deployed hello-world Lambda has no trigger yet. Connecting the image
+processor to the SQS queue is deferred until its processing behavior is
+implemented.
+
 ### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/)
@@ -30,7 +78,7 @@ Install the Python dependencies and bootstrap each target AWS account and region
 once:
 
 ```bash
-uv sync --frozen --dev
+uv sync --frozen --dev --all-packages
 cdk bootstrap aws://$AWS_ACCOUNT_ID/$AWS_REGION
 ```
 
