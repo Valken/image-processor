@@ -8,14 +8,23 @@ A serverless tool built with AWS for processing images for use with blogs or oth
 
 ## Infrastructure
 
-The AWS infrastructure is defined with Python CDK and includes separate stacks for
-each deployment environment:
+The AWS infrastructure is defined with Python CDK as two stacks per
+environment, split by whether their resources hold state:
 
-- `image-processor-infra-dev`
-- `image-processor-infra-prod`
+| Stack | Contents | Changes |
+|---|---|---|
+| `image-processor-infra-{env}` | **Stateful:** S3 bucket, CloudFront, SQS upload queue + DLQ, EventBridge upload rule | Rarely |
+| `image-processor-service-{env}` | **Stateless:** Lambdas and their IAM grants | Every deploy |
 
-The development bucket and its contents are deleted when its stack is deleted.
-The production bucket is retained.
+References only flow from the service stack to the infra stack. Grant
+permissions on the Lambda's own role (`bucket.grant_*(fn)`,
+`fn.add_event_source(...)`); never edit a stateful resource's policy to name
+something in the service stack, or the stacks form a dependency cycle.
+
+In dev, stateful resources (and the bucket's contents) are deleted with their
+stack. In prod they are retained, and the infra stack has termination
+protection. CloudFormation replaces a resource when its logical ID changes, so
+`tests/cdk/test_infra_stack.py` pins the stateful resources' logical IDs.
 
 ### Lambda packaging
 

@@ -21,6 +21,8 @@ infra_stack = ImageProcessorInfraStack(
     "ImageProcessorInfra",
     environment=environment,
     stack_name=stack_name,
+    # Stateful: guard prod against accidental `cdk destroy`.
+    termination_protection=environment == "prod",
 )
 
 service_stack = ImageProcessorServiceStack(
@@ -28,6 +30,7 @@ service_stack = ImageProcessorServiceStack(
     "ImageProcessorService",
     environment=environment,
     image_bucket=infra_stack.image_bucket,
+    upload_queue=infra_stack.upload_queue,
     stack_name=f"image-processor-service-{environment}",
 )
 service_stack.add_stack_dependency(infra_stack)
