@@ -33,6 +33,7 @@ class ImageProcessorServiceStack(Stack):
             "HelloFunction",
             path="handlers/hello",
             handler="hello_handler.handler.handler",
+            service_name="hello",
         )
         CfnOutput(self, "HelloFunctionArn", value=hello_function.function_arn)
 

@@ -8,16 +8,18 @@ without copying files by hand.
 """
 
 import tomllib
+from collections.abc import Mapping
 from functools import cache
 from pathlib import Path
 from typing import Any
 
-from aws_cdk import BundlingOptions, DockerImage, IgnoreMode
+from aws_cdk import BundlingOptions, DockerImage, Duration, IgnoreMode, aws_logs
 from aws_cdk import aws_lambda as lambda_
 from constructs import Construct
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BUNDLING_IMAGE_DIR = Path(__file__).resolve().parent / "bundling"
+DEFAULT_TIMEOUT = Duration.seconds(30)
 
 
 @cache
@@ -78,9 +80,19 @@ class UvPythonFunction(lambda_.Function):
         e.g. ``"handlers/hello"``. The package name is read from its
         ``pyproject.toml``.
     :param handler: the Lambda handler, e.g. ``"hello_handler.handler.handler"``.
-    :param kwargs: any other ``lambda_.Function`` props (timeout, memory_size,
-        environment, ...). ``code``, ``runtime`` and ``architecture`` are set by
-        this construct.
+    :param service_name: value for ``POWERTOOLS_SERVICE_NAME``, which tags
+        Powertools logs, metrics and traces.
+    :param timeout: function timeout. Defaults to 30 seconds.
+    :param memory_size: memory in MB (CPU scales with it). Defaults to 512.
+    :param log_retention: retention for the function's log group. Defaults to
+        one month.
+    :param tracing: X-Ray tracing mode. Defaults to active.
+    :param environment: extra environment variables, merged over
+        ``POWERTOOLS_SERVICE_NAME``.
+    :param kwargs: any other ``lambda_.Function`` props (``layers``,
+        ``reserved_concurrent_executions``, ``vpc``, ...). ``code``,
+        ``runtime``, ``architecture``, ``log_group`` and ``logging_format``
+        are set by this construct.
     """
 
     def __init__(
@@ -90,10 +102,20 @@ class UvPythonFunction(lambda_.Function):
         *,
         path: str,
         handler: str,
+        service_name: str,
+        timeout: Duration = DEFAULT_TIMEOUT,
+        memory_size: int = 512,
+        log_retention: aws_logs.RetentionDays = aws_logs.RetentionDays.ONE_MONTH,
+        tracing: lambda_.Tracing = lambda_.Tracing.ACTIVE,
+        environment: Mapping[str, str] | None = None,
         **kwargs: Any,
     ) -> None:
         member_path = path.strip("/")
         package = _package_name(PROJECT_ROOT / member_path)
+
+        log_group = aws_logs.LogGroup(
+            scope, f"{construct_id}LogGroup", retention=log_retention
+        )
 
         super().__init__(
             scope,
@@ -101,6 +123,15 @@ class UvPythonFunction(lambda_.Function):
             runtime=lambda_.Runtime.PYTHON_3_14,
             architecture=lambda_.Architecture.X86_64,
             handler=handler,
+            timeout=timeout,
+            memory_size=memory_size,
+            log_group=log_group,
+            logging_format=lambda_.LoggingFormat.JSON,
+            tracing=tracing,
+            environment={
+                "POWERTOOLS_SERVICE_NAME": service_name,
+                **(environment or {}),
+            },
             code=lambda_.Code.from_asset(
                 str(PROJECT_ROOT),
                 exclude=_asset_excludes(member_path),
