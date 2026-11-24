@@ -1,11 +1,12 @@
 from typing import Any
 
-from aws_cdk import Duration, Stack
+from aws_cdk import CfnOutput, Duration, Stack
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
 from aws_cdk.aws_s3 import IBucket
 from aws_cdk.aws_sqs import Queue as SqsQueue
 from constructs import Construct
+from uv_python_function import UvPythonFunction
 
 
 class ImageProcessorServiceStack(Stack):
@@ -26,6 +27,15 @@ class ImageProcessorServiceStack(Stack):
             "ImageProcessingQueue",
             visibility_timeout=Duration.seconds(300),
         )
+
+        hello_function = UvPythonFunction(
+            self,
+            "HelloFunction",
+            path="handlers/hello",
+            handler="hello_handler.handler.handler",
+            service_name="hello",
+        )
+        CfnOutput(self, "HelloFunctionArn", value=hello_function.function_arn)
 
         events.Rule(
             self,

@@ -4,6 +4,14 @@ version = "0.1.1"
 requires-python = ">=3.14"
 dependencies = []
 
+[tool.uv.workspace]
+members = ["handlers/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["handlers"]
+# Each handler has its own tests/ dir; importlib mode avoids basename clashes.
+addopts = ["--import-mode=importlib"]
+
 [dependency-groups]
 dev = [
     "aws-cdk-lib>=2.265.0",
