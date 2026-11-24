@@ -1,10 +1,11 @@
 """Lambda function bundled from a uv workspace member.
 
-Each handler lives in its own workspace member under ``handlers/<name>/`` with a
-``pyproject.toml`` and a src-layout package. This construct installs that member
-and its locked runtime dependency closure (from the root ``uv.lock``) directly
-into the Lambda asset, so multi-module handlers and workspace libraries work
-without copying files by hand.
+Each handler lives in its own workspace member under ``handlers/<name>/``: a
+``pyproject.toml`` with the package directly beside it (flat layout, no
+``src/``). This construct installs that member and its locked runtime
+dependency closure (from the root ``uv.lock``) directly into the Lambda asset,
+so multi-module handlers and workspace libraries work without copying files by
+hand.
 """
 
 import tomllib
@@ -48,7 +49,6 @@ def _asset_excludes(member_path: str) -> list[str]:
         "!uv.lock",
         "!handlers/*/pyproject.toml",
         f"!{member_path}",
-        f"{member_path}/tests",
         "**/__pycache__",
         "**/.ruff_cache",
         "**/.pytest_cache",
