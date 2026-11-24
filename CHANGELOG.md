@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.0](https://github.com/Valken/image-processor/compare/v0.1.1...v0.2.0) (2026-11-24)
+
+
+### Features
+
+* Bundle Lambda handlers from uv workspace members ([#12](https://github.com/Valken/image-processor/issues/12)) ([c74d4c2](https://github.com/Valken/image-processor/commit/c74d4c26f7d83b5415021daef4183aeabeabc8e3))
+* Move upload queue into the stateful infra stack ([#14](https://github.com/Valken/image-processor/issues/14)) ([4b7237a](https://github.com/Valken/image-processor/commit/4b7237abf01bccce900e8870ae7803286128c175))
+
+
+### Bug Fixes
+
+* Bump GitHub Actions to node24-runtime versions ([#10](https://github.com/Valken/image-processor/issues/10)) ([7749450](https://github.com/Valken/image-processor/commit/7749450d9d5835569877b979f3da9d89d934d899))
+
 ## [0.1.1](https://github.com/Valken/image-processor/compare/v0.1.0...v0.1.1) (2026-08-16)
 
 
