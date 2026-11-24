@@ -8,7 +8,9 @@ dependencies = []
 members = ["handlers/*"]
 
 [tool.pytest.ini_options]
-testpaths = ["handlers"]
+testpaths = ["handlers", "tests"]
+# CDK tests import stack modules the way cdk/app.py does.
+pythonpath = ["cdk"]
 # Each handler has its own tests/ dir; importlib mode avoids basename clashes.
 addopts = ["--import-mode=importlib"]
 
