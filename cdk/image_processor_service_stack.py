@@ -1,6 +1,6 @@
 from typing import Any
 
-from aws_cdk import CfnOutput, Stack
+from aws_cdk import Stack
 from aws_cdk.aws_s3 import IBucket
 from aws_cdk.aws_sqs import IQueue
 from constructs import Construct
@@ -29,11 +29,10 @@ class ImageProcessorServiceStack(Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        hello_function = UvPythonFunction(
+        UvPythonFunction(
             self,
             "HelloFunction",
             path="handlers/hello",
             handler="hello_handler.handler.handler",
             service_name="hello",
         )
-        CfnOutput(self, "HelloFunctionArn", value=hello_function.function_arn)

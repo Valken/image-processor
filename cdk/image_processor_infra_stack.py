@@ -131,10 +131,3 @@ class ImageProcessorInfraStack(Stack):
                 },
             )
         )
-
-        CfnOutput(
-            self,
-            "ImageDistributionDomainName",
-            value=distribution.distribution_domain_name,
-        )
-        CfnOutput(self, "ImageDistributionId", value=distribution.distribution_id)
