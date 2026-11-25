@@ -1,8 +1,13 @@
-FROM ghcr.io/astral-sh/uv:0.7.13 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.10 AS uv
 
 FROM public.ecr.aws/sam/build-python3.14
 
-COPY --from=uv /uv /uvx /bin/
+# The SAM image ships its own uv binaries (/root/.local/bin, /var/lang/bin)
+# ahead of /bin on PATH, and CDK runs bundling as the host user, so the
+# unpinned /var/lang/bin/uv would win. Put the pinned uv first. Keep this
+# version in step with [tool.uv] required-version in pyproject.toml.
+COPY --from=uv /uv /uvx /opt/uv/bin/
+ENV PATH=/opt/uv/bin:$PATH
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
