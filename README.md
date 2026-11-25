@@ -29,13 +29,18 @@ protection. CloudFormation replaces a resource when its logical ID changes, so
 ### Lambda packaging
 
 Each Lambda handler is its own uv workspace member under `handlers/<name>/`,
-with a src-layout package, its own runtime dependencies, and its own tests:
+with a flat-layout package and its own runtime dependencies. Tests live in the
+root `tests/` tree:
 
 ```
 handlers/hello/
   pyproject.toml            # name = "hello-handler"
-  src/hello_handler/handler.py
-  tests/
+  hello_handler/
+    __init__.py
+    handler.py
+tests/
+  handlers/test_hello.py
+  cdk/test_infra_stack.py
 ```
 
 All members share the single root `uv.lock`. In CDK, the `UvPythonFunction`
@@ -57,7 +62,8 @@ redeploy it.
 #### Adding a handler
 
 1. Create `handlers/<name>/` with a `pyproject.toml` (copy `handlers/hello`'s)
-   and a `src/<package>/` package.
+   and a `<package>/` directory beside it, then add tests under
+   `tests/handlers/`.
 2. Run `uv lock && uv sync --all-packages`.
 3. Add it to a stack:
 
