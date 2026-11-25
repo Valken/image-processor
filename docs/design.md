@@ -9,6 +9,7 @@
 - [Architecture — Tech Stack](#architecture--tech-stack)
 - [Code Layout](#code-layout)
 - [Architecture Diagram](#architecture-diagram)
+- [Authentication](#authentication)
 - [API Definition](#api-definition)
 - [Upload Constraints](#upload-constraints)
 - [User Flow](#user-flow)
@@ -36,7 +37,7 @@ Support for anything other than images. This is not a media processor.
 - CDK
 - Github Actions
 - Python 3.14, uv
-- API Gateway HTTP API
+- API Gateway HTTP API, Amazon Cognito (JWT auth)
 - AWS Lambda Powertools, Pydantic, Pillow
 
 ## Code Layout
@@ -65,11 +66,11 @@ graph TB
     SQS["SQS<br/>Standard Queue"]
     Lambda["Image procesing<br/>Lambda"]
 
-    Client -->|1. Request URL| API
+    Client -->|1. Request URL<br/>JWT| API
     API -->|Write state pending| DDB
-    API -->|2. Return URL + form fields| Client
+    API -->|2. Return presigned<br/>PUT URL| Client
 
-    Client -->|3. Upload file via<br/>presigned POST<br/>size-capped| S3
+    Client -->|3. Upload file via<br/>presigned PUT| S3
 
     S3 -->|4. S3:ObjectCreated event| SQS
 
@@ -89,35 +90,63 @@ graph TB
     style Lambda fill:#7F77DD,color:#fff
 ```
 
+## Authentication
+
+This is an upload service for my own applications, not the public. Every API
+route requires a JWT issued by **Amazon Cognito**:
+
+- **Authorizer:** an HTTP API JWT authorizer on all routes, with issuer
+  `https://cognito-idp.<region>.amazonaws.com/<user-pool-id>` and audience set
+  to the allowed Cognito app client IDs. For Cognito access tokens, API Gateway
+  matches the audience against the `client_id` claim.
+- **One app client per application:** each consuming application gets its own
+  Cognito app client. Backend applications use the OAuth 2.0
+  **client credentials** grant. A browser application with signed-in users
+  would use authorization code + PKCE instead.
+- **Scopes:** a Cognito resource server defines `image-processor/upload` (for
+  `POST /upload`) and `image-processor/read` (for `GET /status`), enforced as
+  route authorization scopes.
+- **Per-application identity:** the token's `client_id` is stored on the status
+  record, so it's known which application uploaded each image, and
+  `GET /status` only returns records created by the same client.
+
+Open question: create the user pool in the infra stack (it's stateful), or use
+an existing pool shared with the applications.
+
 ## API Definition
 
-`POST upload`
+`POST /upload`
+
+Request:
+
+```json
+{
+    "content_type": "image/png",
+    "size": 2481337
+}
+```
+
+- `content_type` (required): one of `image/jpeg`, `image/png`, `image/webp`,
+  `image/heic`.
+- `size` (optional): the file size in bytes. If given and over the upload limit,
+  the API rejects the request (422) before the client starts uploading.
+
+Both are validated by the request's Pydantic model.
 
 Response:
 
 ```json
 {
     "image_id": "server side generated guid",
-    "upload": {
-        "url": "https://<bucket>.s3.<region>.amazonaws.com/",
-        "fields": {
-            "key": "uploads/<image_id>",
-            "Content-Type": "image/jpeg",
-            "policy": "<base64 policy>",
-            "x-amz-algorithm": "AWS4-HMAC-SHA256",
-            "x-amz-credential": "...",
-            "x-amz-date": "...",
-            "x-amz-security-token": "...",
-            "x-amz-signature": "..."
-        }
-    }
+    "upload_url": "presigned PUT url for uploads/<image_id>"
 }
 ```
 
-The client uploads with a `multipart/form-data` POST to `upload.url`, sending
-every entry in `upload.fields` followed by the file as the last field, `file`.
+The client then uploads the raw file with `PUT <upload_url>`, sending a
+`Content-Type` header equal to the requested `content_type`. S3 returns
+`200 OK` on success.
 
-`GET status/{guid}`
+`GET /status/{image_id}`
 
 Response:
 
@@ -133,57 +162,68 @@ Response:
 
 ## Upload Constraints
 
-Uploads use an S3 **presigned POST**, not a presigned PUT. A presigned PUT URL
-can't limit the upload size; a presigned POST carries a signed policy that S3
-enforces, rejecting non-conforming uploads before they're stored.
+Uploads use an S3 **presigned PUT** URL. Clients are my own authenticated
+applications, so the JWT is the real gate on who can upload. Size is enforced
+after upload, in the processor, rather than by S3 at upload time.
 
-Policy conditions set by the API:
-
-- `content-length-range`: 1 byte up to the upload limit (proposed **20 MB**, to
-  confirm)
-- `key`: exactly `uploads/{image_id}`
-- `Content-Type`: starts with `image/`. Client-declared, so the processor still
-  verifies the real format
-- Expiry: short-lived (5–15 minutes)
-
-Consequences:
-
-- **Event routing:** S3 reports these uploads with event reason `PostObject`.
-  The EventBridge rule must match `PostObject` (and `PutObject`, so console
-  uploads still work for testing), or uploads are silently ignored.
-- **CORS:** browsers upload directly to S3, so the bucket needs a CORS rule
-  allowing `POST` from the client's origin.
-- **IAM:** the API Lambda signs the policy with its own credentials, so its role
+- **Signed into the URL:** the exact key `uploads/{image_id}` and the
+  `Content-Type`. S3 rejects a PUT with a different type (signature mismatch).
+  The type is still client-declared, so the processor verifies the real format.
+- **Expiry:** short-lived (5–15 minutes).
+- **Upload limit:** proposed **20 MB**, to confirm. A presigned PUT can't
+  enforce it, so:
+  - the API rejects requests whose declared `size` is over the limit;
+  - the processor checks `detail.object.size` from the S3 event **before
+    downloading**, and marks anything over the limit as a permanent `failed`.
+    An oversized upload costs bandwidth and an event, but never Lambda memory
+    or time.
+- **Lifecycle:** objects under `uploads/` expire after a few days, once
+  `processed/` holds the outputs, so even an oversized file that slips through
+  stops costing storage.
+- **Event routing:** presigned PUT uploads have event reason `PutObject`, which
+  the EventBridge rule already matches.
+- **CORS:** if a browser performs the upload, the bucket needs a CORS rule
+  allowing `PUT` from that application's origin.
+- **IAM:** the API Lambda signs the URL with its own credentials, so its role
   needs `s3:PutObject` on `uploads/*` only.
+
+If an application ever lets its own end users upload directly (an untrusted
+browser), switch to presigned POST, whose signed policy can enforce
+`content-length-range` at upload time.
 
 ## User Flow
 
-- Request an upload (presigned POST URL + form fields)
-- Poll a status endpoint
-- On complete response will include urls for thumb and large image
+- Authenticate with Cognito to get an access token
+- Request an upload (`POST /upload`) and receive a presigned PUT URL
+- Upload the file with `PUT` to that URL
+- Poll the status endpoint
+- On complete, the response includes URLs for the thumb and large image
 
 ```mermaid
 sequenceDiagram
     participant Client
+    participant Cognito
     participant API
     participant S3
 
+    Client->>Cognito: Get access token
+    Cognito->>Client: JWT
 
-    Client->>API: 1. POST /upload
-    API->>Client: Return presigned POST URL + fields
+    Client->>API: 1. POST /upload (JWT, content_type)
+    API->>Client: 2. Return image_id + presigned PUT URL
 
-    Client->>S3: 3. POST form fields + file (presigned POST)
+    Client->>S3: 3. PUT object (presigned URL)
 
-    Client->>API: Poll GET /status
-    API->>Client: Return status + output URL
+    Client->>API: Poll GET /status (JWT)
+    API->>Client: Return status + output URLs
 
 ```
 
 ## Worker Flow
 
-- S3 Object Created events (`PostObject`) routed via EventBridge to an SQS queue
+- S3 Object Created events (`PutObject`) routed via EventBridge to an SQS queue
 - Lambda event source for the queue
-- Loads and resizes images
+- Checks the object size from the event, then loads and resizes images
 
 ## Error Handling & Retry Strategy
 
@@ -214,7 +254,8 @@ failed. So the processor splits errors in two:
 ## Persistence & State Transitions
 
 - User requests an upload URL
-- Record written to DDB recording the generated guid and pending status
+- Record written to DDB recording the generated guid, pending status, and the
+  uploading application's Cognito `client_id`
 - Processor lambda gets S3 put events via SQS, it sets processing
 - When done, it sets complete
 - Update logic needs to support going right from pending to complete even if that won't happen in this implementation
@@ -227,6 +268,9 @@ failed. So the processor splits errors in two:
 `uploads/{guid}` - original image
 `processed/{guid}/thumb.webp`
 `processed/{guid}/display.webp`
+
+Objects under `uploads/` expire via a lifecycle rule a few days after upload;
+`processed/` objects are kept.
 
 ## Image Resizing Strategy
 
@@ -242,9 +286,9 @@ If an image is smaller than the default min width, it will be left unchanged.
 
 Oversized images are rejected at two levels:
 
-- **Bytes:** S3 rejects uploads over the upload limit (see
-  [Upload Constraints](#upload-constraints)), so they never reach the
-  processor.
+- **Bytes:** the processor checks the object size from the S3 event before
+  downloading, and marks anything over the upload limit as `failed` (see
+  [Upload Constraints](#upload-constraints)).
 - **Pixels:** a small file can decompress into a huge image (a decompression
   bomb), so the processor also checks dimensions, through Pillow's
   `MAX_IMAGE_PIXELS` guard, and treats an oversized image as a permanent error
