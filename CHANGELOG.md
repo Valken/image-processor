@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/Valken/image-processor/compare/v0.2.1...v0.2.2) (2026-11-25)
+
+
+### Bug Fixes
+
+* Keep uv.lock version in sync on release ([#19](https://github.com/Valken/image-processor/issues/19)) ([401a76f](https://github.com/Valken/image-processor/commit/401a76f8ed2d3709e53a074aa86c41e12299a1a6))
+* Pin tooling versions and use them consistently ([#20](https://github.com/Valken/image-processor/issues/20)) ([d1ddd9f](https://github.com/Valken/image-processor/commit/d1ddd9f745fbe9f7b11603e6292f87a898e72b87))
+
 ## [0.2.1](https://github.com/Valken/image-processor/compare/v0.2.0...v0.2.1) (2026-11-25)
 
 
