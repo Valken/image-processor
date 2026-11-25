@@ -129,8 +129,29 @@ sequenceDiagram
 
 ## Error Handling & Retry Strategy
 
-- SQS DLQ
-- Handle unsupported images by marking as failed in SQS - Does that put them back in the queue for another round?
+SQS only redelivers a message when the Lambda reports it as failed. A message
+the handler returns successfully for is deleted, even if the image itself
+failed. So the processor splits errors in two:
+
+| Error | Examples | Handling | Outcome |
+|---|---|---|---|
+| **Permanent** | Unsupported format, corrupt file, too large | Set status to `failed` in DDB, return success | Message deleted; client sees `failed` when polling |
+| **Transient** | Throttling, timeouts, S3/DDB errors | Report as a batch item failure | Redelivered after the visibility timeout |
+
+- **Partial batch failures:** the SQS event source uses
+  `report_batch_item_failures`, with Powertools' `BatchProcessor`, so only the
+  failed messages in a batch are retried, not the whole batch.
+- **Dead-letter queue:** after 3 receives (`maxReceiveCount`), a message moves to
+  the DLQ, which keeps messages for 14 days for investigation and redrive. A
+  message in the DLQ therefore means a transient error that never cleared.
+  Permanent errors never reach it.
+- **Visibility timeout:** at least 6× the processor Lambda's timeout (AWS
+  guidance for SQS event sources), so a message isn't redelivered while still
+  being processed.
+- **Idempotency:** standard SQS delivers at least once, so the processor must
+  tolerate duplicates. Outputs go to deterministic keys
+  (`processed/{guid}/...`), so reprocessing overwrites them, and status updates
+  must not move a record backwards (e.g. `complete` → `processing`).
 
 ## Persistence & State Transitions
 
@@ -165,4 +186,9 @@ Cloudfront
 
 ## Non-Functional Requirements
 
-- Alarms on SQS queue and DDB table records to flag errors
+- Alarms to flag errors:
+  - DLQ `ApproximateNumberOfMessagesVisible` > 0: a transient failure exhausted
+    its retries
+  - Upload queue `ApproximateAgeOfOldestMessage` above a threshold: the
+    processor is falling behind or not consuming
+  - DDB records stuck in `pending`/`processing` past an expected time
