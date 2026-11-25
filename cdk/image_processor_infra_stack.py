@@ -1,6 +1,6 @@
 from typing import Any
 
-from aws_cdk import CfnOutput, Duration, RemovalPolicy, Stack
+from aws_cdk import Duration, RemovalPolicy, Stack
 from aws_cdk import aws_cloudfront as cloudfront
 from aws_cdk import aws_cloudfront_origins as origins
 from aws_cdk import aws_events as events
@@ -45,9 +45,6 @@ class ImageProcessorInfraStack(Stack):
             ),
         )
         self.image_bucket = bucket
-
-        CfnOutput(self, "ImageBucketName", value=bucket.bucket_name)
-        CfnOutput(self, "ImageBucketArn", value=bucket.bucket_arn)
 
         # Uploads flow S3 -> EventBridge -> SQS. Going via EventBridge (rather
         # than S3 bucket notifications to a Lambda) keeps every reference
@@ -95,13 +92,6 @@ class ImageProcessorInfraStack(Stack):
                 },
             ),
             targets=[targets.SqsQueue(upload_queue)],
-        )
-
-        CfnOutput(self, "ImageProcessingQueueUrl", value=upload_queue.queue_url)
-        CfnOutput(
-            self,
-            "ImageProcessingDeadLetterQueueUrl",
-            value=dead_letter_queue.queue_url,
         )
 
         distribution = cloudfront.Distribution(
