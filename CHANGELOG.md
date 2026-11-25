@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/Valken/image-processor/compare/v0.2.0...v0.2.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* remove cfn output ([#16](https://github.com/Valken/image-processor/issues/16)) ([d77a021](https://github.com/Valken/image-processor/commit/d77a021eb07ca3c034a597c418a04ad528a40148))
+
 ## [0.2.0](https://github.com/Valken/image-processor/compare/v0.1.1...v0.2.0) (2026-11-24)
 
 
