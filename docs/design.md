@@ -107,8 +107,18 @@ route requires a JWT issued by **Amazon Cognito**:
   `POST /upload`) and `image-processor/read` (for `GET /status`), enforced as
   route authorization scopes.
 - **Per-application identity:** the token's `client_id` is stored on the status
-  record, so it's known which application uploaded each image, and
-  `GET /status` only returns records created by the same client.
+  record, so it's known which application uploaded each image.
+  - **Isolation:** `GET /status/{image_id}` returns a record only to the client
+    that created it. For any other client it returns **404**, the same as for a
+    missing ID, rather than 403, so one application can't discover which image
+    IDs exist.
+  - **Logging:** both Lambdas add `client_id` to every log line
+    (`logger.append_keys(client_id=...)`), so logs can be filtered per
+    application. The processor reads it from the status record, since S3
+    events don't carry it.
+- **S3 keys stay application-agnostic:** images from all applications share
+  `uploads/{guid}` and `processed/{guid}/...`. Ownership lives in DynamoDB
+  only, which keeps `client_id` out of public CloudFront URLs.
 
 Open question: create the user pool in the infra stack (it's stateful), or use
 an existing pool shared with the applications.
