@@ -162,13 +162,15 @@ Response:
 
 ## Upload Constraints
 
-Uploads use an S3 **presigned PUT** URL. Clients are my own authenticated
-applications, so the JWT is the real gate on who can upload. Size is enforced
-after upload, in the processor, rather than by S3 at upload time.
+Uploads use an S3 **presigned PUT** URL. Only my own applications, holding a
+valid Cognito JWT, can request one, so the API's authorizer controls who can
+upload. Size is enforced after upload, in the processor, rather than by S3 at
+upload time.
 
 - **Signed into the URL:** the exact key `uploads/{image_id}` and the
   `Content-Type`. S3 rejects a PUT with a different type (signature mismatch).
-  The type is still client-declared, so the processor verifies the real format.
+  The type is still client-declared, so the processor checks the file's actual
+  format.
 - **Expiry:** short-lived (5–15 minutes).
 - **Upload limit:** proposed **20 MB**, to confirm. A presigned PUT can't
   enforce it, so:
