@@ -30,10 +30,10 @@ jobs:
         uses: actions/setup-node@v7
 
       - name: Install AWS CDK CLI
-        run: npm install --global aws-cdk
+        run: npm install --global aws-cdk@2.1146.1
 
       - name: Synchronize dependencies
-        run: uv sync --frozen --dev
+        run: uv sync --locked --dev
 
       - name: Synthesize stack
         working-directory: cdk

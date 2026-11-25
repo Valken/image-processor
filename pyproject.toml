@@ -4,6 +4,11 @@ version = "0.2.1"
 requires-python = ">=3.14"
 dependencies = []
 
+[tool.uv]
+# One uv version everywhere: setup-uv in CI reads this, and the bundling image
+# (cdk/bundling/Dockerfile) and handlers' uv_build range must match it.
+required-version = ">=0.13.10,<0.14"
+
 [tool.uv.workspace]
 members = ["handlers/*"]
 
