@@ -55,9 +55,10 @@ uv export --frozen --no-dev --package hello-handler --no-editable --no-hashes \
 ```
 
 Each function's asset hash is derived only from the root `pyproject.toml`,
-`uv.lock`, the members' `pyproject.toml` files and that handler's own source,
-so changes to other handlers, CDK code, tests, IDE files or `cdk.out` don't
-redeploy it.
+`uv.lock`, the members' `pyproject.toml` files, that handler's own source and
+the shared libraries under `libs/`, so changes to other handlers, CDK code,
+tests, IDE files or `cdk.out` don't redeploy it. A change under `libs/`
+redeploys every handler. `tests/cdk/test_asset_fingerprint.py` checks this.
 
 #### Adding a handler
 
