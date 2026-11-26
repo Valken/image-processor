@@ -55,9 +55,10 @@ uv export --frozen --no-dev --package hello-handler --no-editable --no-hashes \
 ```
 
 Each function's asset hash is derived only from the root `pyproject.toml`,
-`uv.lock`, the members' `pyproject.toml` files and that handler's own source,
-so changes to other handlers, CDK code, tests, IDE files or `cdk.out` don't
-redeploy it.
+`uv.lock`, the members' `pyproject.toml` files, that handler's own source and
+the shared libraries under `libs/`, so changes to other handlers, CDK code,
+tests, IDE files or `cdk.out` don't redeploy it. A change under `libs/`
+redeploys every handler. `tests/cdk/test_asset_fingerprint.py` checks this.
 
 #### Adding a handler
 
@@ -73,8 +74,25 @@ redeploy it.
        "ResizeFunction",
        path="handlers/resize",
        handler="resize_handler.handler.handler",
+       service_name="resize",
    )
    ```
+
+#### Shared libraries
+
+Code shared between handlers lives in a workspace member under
+`libs/<name>/` (`libs/common` to start), laid out like a handler but never
+deployed on its own. To use one from a handler, run this
+from the repository root:
+
+```bash
+uv add --package resize-handler common
+```
+
+uv adds `common` to the handler's dependencies with a
+`[tool.uv.sources] common = { workspace = true }` entry, so it's installed from
+the workspace, editable locally and as a normal package in the Lambda bundle.
+Tests for libraries go under `tests/libs/`.
 
 The deployed hello-world Lambda has no trigger yet. Connecting the image
 processor to the SQS queue is deferred until its processing behavior is

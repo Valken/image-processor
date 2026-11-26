@@ -43,11 +43,19 @@ def _asset_excludes(member_path: str) -> list[str]:
     # code, IDE files, cdk.out) must not leak in, or unrelated changes would
     # redeploy this function. Every member's pyproject.toml is included because
     # uv needs the full workspace layout to read the lockfile.
+    #
+    # Bundling mounts the whole project root, not just these files, so a
+    # workspace library the handler depends on gets installed even when it's
+    # missing here. It must still be listed, or edits to it won't change the
+    # hash and the cached asset is redeployed unchanged. All of libs/ is
+    # included, so a library change redeploys every handler, including ones
+    # that don't use it.
     return [
         "*",
         "!pyproject.toml",
         "!uv.lock",
         "!handlers/*/pyproject.toml",
+        "!libs",
         f"!{member_path}",
         "**/__pycache__",
         "**/.ruff_cache",
