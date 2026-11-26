@@ -4,6 +4,7 @@ from aws_cdk import Stack
 from aws_cdk.aws_s3 import IBucket
 from aws_cdk.aws_sqs import IQueue
 from constructs import Construct
+
 from uv_python_function import UvPythonFunction
 
 

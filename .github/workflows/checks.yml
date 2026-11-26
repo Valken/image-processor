@@ -52,7 +52,7 @@ jobs:
         run: uv sync --locked --dev --all-packages
 
       - name: Run tests
-        run: uv run pytest || [ $? -eq 5 ]
+        run: uv run pytest
 
   status-check:
     name: status-check

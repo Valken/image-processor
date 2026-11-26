@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 from aws_cdk import FileSystem, IgnoreMode
+
 from uv_python_function import _asset_excludes
 
 FILES = {

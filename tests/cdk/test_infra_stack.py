@@ -1,12 +1,9 @@
-"""Assertions for the stateful infra stack.
-
-The service stack isn't tested here: constructing it builds the Lambda bundling
-Docker image, so its tests would need Docker running.
-"""
+"""Assertions for the stateful infra stack."""
 
 import pytest
 from aws_cdk import App
 from aws_cdk.assertions import Match, Template
+
 from image_processor_infra_stack import ImageProcessorInfraStack
 
 # CloudFormation replaces a resource whenever its logical ID changes, and for
