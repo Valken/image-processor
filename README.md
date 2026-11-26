@@ -74,8 +74,25 @@ redeploys every handler. `tests/cdk/test_asset_fingerprint.py` checks this.
        "ResizeFunction",
        path="handlers/resize",
        handler="resize_handler.handler.handler",
+       service_name="resize",
    )
    ```
+
+#### Shared libraries
+
+Code shared between handlers lives in a workspace member under
+`libs/<name>/` (`libs/common` to start), laid out like a handler but never
+deployed on its own. To use one from a handler, run this
+from the repository root:
+
+```bash
+uv add --package resize-handler common
+```
+
+uv adds `common` to the handler's dependencies with a
+`[tool.uv.sources] common = { workspace = true }` entry, so it's installed from
+the workspace, editable locally and as a normal package in the Lambda bundle.
+Tests for libraries go under `tests/libs/`.
 
 The deployed hello-world Lambda has no trigger yet. Connecting the image
 processor to the SQS queue is deferred until its processing behavior is

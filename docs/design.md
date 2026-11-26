@@ -49,7 +49,7 @@ dependencies (Pillow never lands in the API's bundle):
 |---|---|---|
 | `handlers/api` | One Lambda behind the HTTP API. A Powertools `APIGatewayHttpResolver` with a `Router` per area (`uploads`, `status`), combined via `include_router`. `enable_validation=True` validates requests and serializes responses from Pydantic models | Powertools, Pydantic, `common` |
 | `handlers/processor` | SQS consumer that resizes images, using Powertools' `BatchProcessor` | Powertools, Pillow, `common` |
-| `handlers/common` | Shared library, not a Lambda: the Pydantic model for the DDB status record, the status enum, and the conditional status update | Pydantic |
+| `libs/common` | Shared library, not a Lambda: the Pydantic model for the DDB status record, the status enum, and the conditional status update | Pydantic |
 
 The status record is written by the API (`pending`) and updated by the
 processor (`processing`, `complete`, `failed`). Its model and the rule that

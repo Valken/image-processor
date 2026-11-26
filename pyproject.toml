@@ -10,7 +10,7 @@ dependencies = []
 required-version = ">=0.13.10,<0.14"
 
 [tool.uv.workspace]
-members = ["handlers/*"]
+members = ["handlers/*", "libs/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
