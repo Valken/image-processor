@@ -6,6 +6,7 @@ Synthesizing this stack bundles every Lambda, so these tests need Docker.
 import pytest
 from aws_cdk import App
 from aws_cdk.assertions import Match, Template
+
 from image_processor_infra_stack import ImageProcessorInfraStack
 from image_processor_service_stack import ImageProcessorServiceStack
 

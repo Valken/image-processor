@@ -12,6 +12,14 @@ required-version = ">=0.13.10,<0.14"
 [tool.uv.workspace]
 members = ["handlers/*", "libs/*"]
 
+[tool.ruff]
+# First-party code: CDK modules are imported top-level (as cdk/app.py does),
+# and each workspace member is its own package root.
+src = [".", "cdk", "handlers/*", "libs/*"]
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # CDK tests import stack modules the way cdk/app.py does.

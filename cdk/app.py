@@ -1,4 +1,5 @@
 from aws_cdk import App
+
 from image_processor_infra_stack import ImageProcessorInfraStack
 from image_processor_service_stack import ImageProcessorServiceStack
 
