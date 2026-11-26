@@ -1,8 +1,4 @@
-"""Assertions for the stateful infra stack.
-
-The service stack isn't tested here: constructing it builds the Lambda bundling
-Docker image, so its tests would need Docker running.
-"""
+"""Assertions for the stateful infra stack."""
 
 import pytest
 from aws_cdk import App
