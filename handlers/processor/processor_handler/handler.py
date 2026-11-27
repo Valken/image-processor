@@ -22,7 +22,7 @@ def record_handler(record: SQSRecord):
 
 @logger.inject_lambda_context
 @tracer.capture_lambda_handler
-def lambda_handler(event, context: LambdaContext):
+def handler(event, context: LambdaContext):
     return process_partial_response(
         event=event,
         record_handler=record_handler,

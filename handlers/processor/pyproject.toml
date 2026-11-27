@@ -3,7 +3,7 @@ name = "processor-handler"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
-    "aws-lambda-powertools>=3.41.0",
+    "aws-lambda-powertools[tracer]>=3.41.0",
     "common",
 ]
 
