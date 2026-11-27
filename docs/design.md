@@ -318,3 +318,6 @@ Cloudfront
   - Upload queue `ApproximateAgeOfOldestMessage` above a threshold: the
     processor is falling behind or not consuming
   - DDB records stuck in `pending`/`processing` past an expected time
+  - Processor p99 duration above about 80% of its timeout
+- Processor timeout and memory are set from measurements, see
+  [Sizing the processor Lambda](processor-sizing.md)

@@ -1,6 +1,7 @@
 from typing import Any
 
-from aws_cdk import Stack
+from aws_cdk import Duration, Stack
+from aws_cdk.aws_lambda_event_sources import SqsEventSource
 from aws_cdk.aws_s3 import IBucket
 from aws_cdk.aws_sqs import IQueue
 from constructs import Construct
@@ -37,3 +38,18 @@ class ImageProcessorServiceStack(Stack):
             handler="hello_handler.handler.handler",
             service_name="hello",
         )
+
+        processor_function = UvPythonFunction(
+            self,
+            "ProcessorFunction",
+            path="handlers/processor",
+            handler="processor_handler.handler.handler",
+            service_name="processor",
+            memory_size=1769,  # one full vCPU
+            timeout=Duration.seconds(45),  # under the 50 s ceiling, with headroom
+        )
+        processor_function.add_event_source(
+            SqsEventSource(upload_queue, report_batch_item_failures=True)
+        )
+        image_bucket.grant_read(processor_function, "uploads/*")
+        image_bucket.grant_write(processor_function, "processed/*")

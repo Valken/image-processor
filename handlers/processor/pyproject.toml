@@ -1,0 +1,20 @@
+[project]
+name = "processor-handler"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "aws-lambda-powertools[tracer]>=3.41.0",
+    "boto3>=1.44.13",
+    "common",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.10,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Flat layout: the package lives directly in this directory, not under src/.
+module-root = ""
+
+[tool.uv.sources]
+common = { workspace = true }
