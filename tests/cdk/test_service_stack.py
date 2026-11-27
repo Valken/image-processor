@@ -3,6 +3,8 @@
 Synthesizing this stack bundles every Lambda, so these tests need Docker.
 """
 
+import importlib
+
 import pytest
 from aws_cdk import App
 from aws_cdk.assertions import Match, Template
@@ -41,10 +43,26 @@ def test_hello_function_uses_uv_python_function_defaults(template: Template) -> 
     )
 
 
-def test_function_logs_to_its_own_log_group_with_retention(
+def test_each_function_logs_to_its_own_log_group_with_retention(
     template: Template,
 ) -> None:
-    (function,) = template.find_resources("AWS::Lambda::Function").values()
-    log_group_id = function["Properties"]["LoggingConfig"]["LogGroup"]["Ref"]
-    log_group = template.find_resources("AWS::Logs::LogGroup")[log_group_id]
-    assert log_group["Properties"]["RetentionInDays"] == 30
+    functions = template.find_resources("AWS::Lambda::Function")
+    log_groups = template.find_resources("AWS::Logs::LogGroup")
+    log_group_ids = [
+        function["Properties"]["LoggingConfig"]["LogGroup"]["Ref"]
+        for function in functions.values()
+    ]
+    assert len(set(log_group_ids)) == len(functions)
+    for log_group_id in log_group_ids:
+        assert log_groups[log_group_id]["Properties"]["RetentionInDays"] == 30
+
+
+def test_each_function_handler_resolves_to_a_callable(template: Template) -> None:
+    # A wrong handler string synthesizes and deploys fine, then fails every
+    # invocation with Runtime.ImportModuleError. Every member is installed in
+    # the venv (uv sync --all-packages), so import each handler from there.
+    for function in template.find_resources("AWS::Lambda::Function").values():
+        handler = function["Properties"]["Handler"]
+        module_name, _, attribute = handler.rpartition(".")
+        module = importlib.import_module(module_name)
+        assert callable(getattr(module, attribute, None)), handler
