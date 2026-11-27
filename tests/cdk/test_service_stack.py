@@ -66,3 +66,15 @@ def test_each_function_handler_resolves_to_a_callable(template: Template) -> Non
         module_name, _, attribute = handler.rpartition(".")
         module = importlib.import_module(module_name)
         assert callable(getattr(module, attribute, None)), handler
+
+
+def test_processor_consumes_upload_queue_with_partial_batch_failures(
+    template: Template,
+) -> None:
+    template.has_resource_properties(
+        "AWS::Lambda::EventSourceMapping",
+        {
+            "FunctionName": {"Ref": Match.string_like_regexp("^ProcessorFunction")},
+            "FunctionResponseTypes": ["ReportBatchItemFailures"],
+        },
+    )

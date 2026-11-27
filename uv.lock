@@ -206,12 +206,6 @@ wheels = [
 name = "hello-handler"
 version = "0.1.0"
 source = { editable = "handlers/hello" }
-dependencies = [
-    { name = "common" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "common", editable = "libs/common" }]
 
 [[package]]
 name = "identify"
