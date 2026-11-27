@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/Valken/image-processor/compare/v0.2.2...v0.2.3) (2026-11-27)
+
+
+### Bug Fixes
+
+* Include libs/ in Lambda asset hash and add libs/common ([#22](https://github.com/Valken/image-processor/issues/22)) ([d00b75c](https://github.com/Valken/image-processor/commit/d00b75c05c07b264d6c2b68a940560571c7216d8))
+
 ## [0.2.2](https://github.com/Valken/image-processor/compare/v0.2.1...v0.2.2) (2026-11-25)
 
 
