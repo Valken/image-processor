@@ -90,6 +90,57 @@ Still to handle:
 | `handler` | Sample EventBridge-in-SQS event, `processor` stubbed | Permanent → `failed` + deleted; transient → `batchItemFailures`; size limit |
 | `ImageRecordStore` | Moto DynamoDB, in `tests/common/` | Each transition; backwards → `False` and unchanged; repeat; `complete` → `failed` and `failed` → `complete` → `False`; missing record; `create` collision |
 
+### Moto for the store tests
+
+- Add `moto[dynamodb]` to the root `dev` dependency group.
+- Why moto over testcontainers + DynamoDB Local: in-process and fast, a fresh
+  table per test, and it evaluates condition expressions (`attribute_exists`,
+  `attribute_not_exists`, `OR`, `<`) and raises
+  `ConditionalCheckFailedException` like the real service.
+- DynamoDB Local is worth it only for edge-case semantics moto may not match
+  (transactions, unusual update expressions, exact limits), or for one
+  end-to-end integration test.
+- Don't use botocore's `Stubber`: it returns scripted responses and never
+  evaluates the condition, so it can't prove the condition is right.
+- Keep the fixture's key schema the same as the CDK table definition.
+
+```python
+# tests/common/conftest.py
+import boto3
+import pytest
+from moto import mock_aws
+
+from common.store import ImageRecordStore
+
+
+@pytest.fixture
+def store():
+    with mock_aws():
+        table = boto3.resource("dynamodb", region_name="us-east-1").create_table(
+            TableName="ImageRecords",
+            KeySchema=[{"AttributeName": "image_id", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "image_id", "AttributeType": "S"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        yield ImageRecordStore(table)
+```
+
+## Naming and config
+
+- Table: `ImageRecords` (CDK construct ID). Leave `table_name` unset so
+  CloudFormation generates the physical name.
+- Model: `ImageRecord`. Class: `ImageRecordStore`.
+- Pass the table name to each Lambda as `IMAGE_RECORDS_TABLE`; build the
+  `boto3` table and `ImageRecordStore` once at module level.
+
+## Dependencies
+
+- Each package lists what its own code imports. `common` lists `pydantic` and
+  `boto3`; the processor lists `pydantic` too only if it imports it directly.
+- One `uv.lock` means one version across the workspace, so listing a package
+  in several members can't conflict.
+- Test-only packages (`moto`, `pytest`) go in the root `dev` group.
+
 ## Doc updates to make
 
 - **Code Layout**: `libs/common` row → "the `ImageRecord` model, the `Status`
