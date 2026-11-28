@@ -16,8 +16,12 @@ updated once the code exists (see [Doc updates to make](#doc-updates-to-make)).
     `_transition(image_id, status, **fields) -> bool`.
   - `_transition`: the only `update_item` call. Sets `status`, `status_rank`,
     `updated_at` and any extra fields. Condition:
-    `attribute_exists(image_id) AND status_rank <= :rank`.
-    - `<=` so a repeated transition (e.g. retried `processing`) is a no-op.
+    `attribute_exists(image_id) AND (status_rank < :rank OR #status = :status)`.
+    - A repeated identical transition (e.g. retried `processing`) succeeds
+      and changes nothing.
+    - `complete` and `failed` share a rank but can't overwrite each other, so
+      a finished state is final. (Plain `status_rank <= :rank` would let a
+      duplicate delivery turn `complete` into `failed`.)
     - A failed condition check returns `False`; the caller logs it and skips.
     - Any other DynamoDB error propagates (transient).
 - Named `mark_*` methods rather than `mark(status)`: `failed` takes a reason
@@ -40,6 +44,31 @@ updated once the code exists (see [Doc updates to make](#doc-updates-to-make)).
 - Pillow only warns at `MAX_IMAGE_PIXELS` and raises at 2×; treat the warning
   as an error or account for it.
 
+## Failure modes
+
+What idempotent writes already cover: duplicate deliveries, retries after a
+partial failure (outputs overwrite the same keys), two runs of the same
+message at once, and transient AWS errors (propagate → SQS retries).
+
+Still to handle:
+
+- **Retries run out and the image stays `processing`.** A transient error
+  that persists for 3 receives sends the message to the DLQ with nothing
+  setting `failed`, so the client polls `processing` forever. Lambda timeouts
+  and out-of-memory errors on a particular image end up the same way.
+  - A small DLQ consumer that calls
+    `mark_failed(reason="processing gave up")`.
+  - An alarm on DLQ depth.
+  - Optionally, the API reports a record that has been `processing` too long
+    as failed.
+- **Re-uploads.** A presigned URL works more than once until it expires. A
+  different image uploaded to the same URL after `complete` is skipped and the
+  old output stays. Keep the expiry short; if it matters, store the object's
+  ETag on the record and only skip a message whose ETag matches.
+- **Sustained throttling** uses up the 3 receives quickly and ends in the
+  stuck-`processing` case. Set boto3's retry mode to `adaptive` (or
+  `standard`) and put a maximum concurrency on the event source mapping.
+
 ## API
 
 - `POST /upload` → `store.create(image_id, client_id)`.
@@ -59,7 +88,7 @@ updated once the code exists (see [Doc updates to make](#doc-updates-to-make)).
 | `image` | Generated images in `tests/handlers/processor/conftest.py` (parametrised formats/modes, small image, pixel bomb via monkeypatched `MAX_IMAGE_PIXELS`) | Output format, width, orientation; bad input → `PermanentError` |
 | `processor` | Moto S3 (or in-memory fake) + fake store | Both outputs at the right keys; `processing` → `complete`; idempotent on rerun |
 | `handler` | Sample EventBridge-in-SQS event, `processor` stubbed | Permanent → `failed` + deleted; transient → `batchItemFailures`; size limit |
-| `ImageRecordStore` | Moto DynamoDB, in `tests/common/` | Each transition; backwards → `False` and unchanged; repeat; missing record; `create` collision |
+| `ImageRecordStore` | Moto DynamoDB, in `tests/common/` | Each transition; backwards → `False` and unchanged; repeat; `complete` → `failed` and `failed` → `complete` → `False`; missing record; `create` collision |
 
 ## Doc updates to make
 
@@ -69,8 +98,10 @@ updated once the code exists (see [Doc updates to make](#doc-updates-to-make)).
   which Lambda may do what is enforced by IAM.
 - **New "Processor modules"** subsection with the table above.
 - **New "Upload Record"** section: the store's methods, conditions, ranking,
-  no-op on backwards moves, failure reason, missing record, ownership check,
-  IAM.
+  no-op on backwards moves, finished states are final, failure reason, missing
+  record, ownership check, IAM.
+- **Error Handling & Retry Strategy**: a DLQ'd message must end as `failed`
+  (DLQ consumer + alarm), not stuck at `processing`.
 - **Persistence & State Transitions**: replace the "conditional writes,
   implemented once in `common`" bullet with a link to Upload Record.
 - **API Definition**: add `reason` to the `GET /status` response (present only
